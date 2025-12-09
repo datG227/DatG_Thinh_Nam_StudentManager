@@ -1,0 +1,403 @@
+using ClosedXML.Excel;
+using Student_Manage___Project.Design;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace Student_Manage___Project.GUI
+{
+    public partial class fSinhVien : Form
+    {
+        List<Student> ds = new List<Student>();
+        bool sapXepTang = true;
+
+        public fSinhVien()
+        {
+            InitializeComponent();
+            KhoiTaoComboBox();
+            TaiLaiBang();
+
+            this.FormClosed += (s, e) => Application.Exit();
+
+            txtDiemTB.ReadOnly = true;
+            txtDiemTB.BackColor = System.Drawing.Color.LightGray;
+            txtDiemTB.TabStop = false;
+
+            txtHocLuc.ReadOnly = true;
+            txtHocLuc.BackColor = System.Drawing.Color.LightGray;
+            txtHocLuc.TabStop = false;
+
+            txtSTT.ReadOnly = true;
+            txtSTT.BackColor = System.Drawing.Color.LightGray;
+            txtSTT.TabStop = false;
+            txtSTT.Text = (ds.Count + 1).ToString();
+
+            txtDiemTK.TextChanged += TinhDiemTB;
+            txtDiemThi.TextChanged += TinhDiemTB;
+
+            dgvSinhVien.CellClick += dgvSinhVien_CellClick;
+        }
+
+    
+        private void TinhDiemTB(object sender, EventArgs e)
+        {
+            if (double.TryParse(txtDiemTK.Text, out double tk) &&
+                double.TryParse(txtDiemThi.Text, out double thi))
+            {
+                double tb = (tk + thi) / 2;
+                txtDiemTB.Text = tb.ToString("0.##");
+                txtHocLuc.Text = XepLoaiHocLuc(tb);
+            }
+            else
+            {
+                txtDiemTB.Clear();
+                txtHocLuc.Clear();
+            }
+        }
+
+       
+        private string XepLoaiHocLuc(double tb)
+        {
+            if (tb >= 9) return "Xuất sắc";
+            if (tb >= 8) return "Giỏi";
+            if (tb >= 6.5) return "Khá";
+            if (tb >= 5) return "Trung bình";
+            if (tb >= 3.5) return "Yếu";
+            return "Kém";
+        }
+
+       
+        private void KhoiTaoComboBox()
+        {
+            cboHanhKiem.Items.Clear();
+            cboHanhKiem.Items.AddRange(new string[] { "Tốt", "Khá", "Trung bình", "Yếu" });
+            cboHanhKiem.SelectedIndex = 0;
+        }
+
+       
+        private void TaiLaiBang()
+        {
+            dgvSinhVien.Rows.Clear();
+            foreach (var sv in ds.OrderBy(x => x.STT))
+            {
+                dgvSinhVien.Rows.Add(
+                    sv.STT, sv.MaSV, sv.TenSV, sv.Lop,
+                    sv.DiemTK, sv.DiemThi, sv.DiemTB,
+                    sv.HocLuc, sv.HanhKiem
+                );
+            }
+        }
+     
+        private void btnThem_Click(object sender, EventArgs e)
+        {
+            if (!int.TryParse(txtMaSV.Text, out _))
+            {
+                MessageBox.Show("MÃ SINH VIÊN PHẢI LÀ SỐ!", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtMaSV.Focus();
+                return;
+            }
+
+            int stt = int.Parse(txtSTT.Text);
+
+            if (ds.Any(x => x.MaSV.Equals(txtMaSV.Text, StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show("Mã sinh viên đã tồn tại!", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                double diemTK = double.Parse(txtDiemTK.Text);
+                double diemThi = double.Parse(txtDiemThi.Text);
+
+                if (diemTK > 10 || diemThi > 10)
+                {
+                    MessageBox.Show("Điểm không được quá 10!", "Lỗi");
+                    return;
+                }
+
+                double diemTB = (diemTK + diemThi) / 2;
+
+                var sv = new Student
+                {
+                    STT = stt,
+                    MaSV = txtMaSV.Text,
+                    TenSV = txtTenSV.Text,
+                    Lop = txtLop.Text,
+                    DiemTK = diemTK,
+                    DiemThi = diemThi,
+                    DiemTB = diemTB,
+                    HocLuc = XepLoaiHocLuc(diemTB),
+                    HanhKiem = cboHanhKiem.Text
+                };
+
+                ds.Add(sv);
+                TaiLaiBang();
+
+                txtSTT.Text = (ds.Count + 1).ToString();
+
+             
+            }
+            catch
+            {
+                MessageBox.Show("Dữ liệu nhập sai!");
+            }
+        }
+
+      
+        private void btnSua_Click(object sender, EventArgs e)
+        {
+            if (dgvSinhVien.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Hãy chọn dòng để sửa!");
+                return;
+            }
+
+            if (!int.TryParse(txtMaSV.Text, out _))
+            {
+                MessageBox.Show("Mã sinh viên phải là số!", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtMaSV.Focus();
+                return;
+            }
+
+            try
+            {
+                int stt = int.Parse(dgvSinhVien.SelectedRows[0].Cells[0].Value.ToString());
+                var sv = ds.FirstOrDefault(x => x.STT == stt);
+                if (sv == null) return;
+
+                double diemTK = double.Parse(txtDiemTK.Text);
+                double diemThi = double.Parse(txtDiemThi.Text);
+
+                double diemTB = (diemTK + diemThi) / 2;
+
+                sv.MaSV = txtMaSV.Text;
+                sv.TenSV = txtTenSV.Text;
+                sv.Lop = txtLop.Text;
+                sv.DiemTK = diemTK;
+                sv.DiemThi = diemThi;
+                sv.DiemTB = diemTB;
+                sv.HocLuc = XepLoaiHocLuc(diemTB);
+                sv.HanhKiem = cboHanhKiem.Text;
+
+                TaiLaiBang();
+                MessageBox.Show("Sửa thành công!");
+            }
+            catch
+            {
+                MessageBox.Show("Dữ liệu không hợp lệ!");
+            }
+        }
+
+        private void btnXoa_Click(object sender, EventArgs e)
+        {
+            if (dgvSinhVien.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Chưa chọn dòng!");
+                return;
+            }
+
+            int stt = int.Parse(dgvSinhVien.SelectedRows[0].Cells[0].Value.ToString());
+            var sv = ds.FirstOrDefault(x => x.STT == stt);
+
+            if (sv != null)
+            {
+                ds.Remove(sv);
+
+           
+                int i = 1;
+                ds = ds.OrderBy(x => x.STT).ToList();
+                foreach (var item in ds)
+                    item.STT = i++;
+
+                TaiLaiBang();
+                txtSTT.Text = (ds.Count + 1).ToString();
+
+                MessageBox.Show("Xóa thành công!");
+            }
+        }
+       
+        private void btnTimKiem_Click(object sender, EventArgs e)
+        {
+            string keyword = txtTimKiem.Text.ToLower();
+
+            var kq = ds.Where(x =>
+                x.MaSV.ToLower().Contains(keyword) ||
+                x.TenSV.ToLower().Contains(keyword) ||
+                x.Lop.ToLower().Contains(keyword)
+            ).ToList();
+
+            dgvSinhVien.Rows.Clear();
+            foreach (var sv in kq)
+            {
+                dgvSinhVien.Rows.Add(
+                    sv.STT, sv.MaSV, sv.TenSV, sv.Lop,
+                    sv.DiemTK, sv.DiemThi, sv.DiemTB,
+                    sv.HocLuc, sv.HanhKiem
+                );
+            }
+        }
+
+       
+        private void dgvSinhVien_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            txtSTT.Text = dgvSinhVien.Rows[e.RowIndex].Cells[0].Value.ToString();
+            txtMaSV.Text = dgvSinhVien.Rows[e.RowIndex].Cells[1].Value.ToString();
+            txtTenSV.Text = dgvSinhVien.Rows[e.RowIndex].Cells[2].Value.ToString();
+            txtLop.Text = dgvSinhVien.Rows[e.RowIndex].Cells[3].Value.ToString();
+            txtDiemTK.Text = dgvSinhVien.Rows[e.RowIndex].Cells[4].Value.ToString();
+            txtDiemThi.Text = dgvSinhVien.Rows[e.RowIndex].Cells[5].Value.ToString();
+            txtDiemTB.Text = dgvSinhVien.Rows[e.RowIndex].Cells[6].Value.ToString();
+            txtHocLuc.Text = dgvSinhVien.Rows[e.RowIndex].Cells[7].Value.ToString();
+            cboHanhKiem.Text = dgvSinhVien.Rows[e.RowIndex].Cells[8].Value.ToString();
+        }
+
+   
+        private void btnSapXep_Click(object sender, EventArgs e)
+        {
+            if (ds.Count == 0) return;
+
+            ds = sapXepTang
+                ? ds.OrderBy(x => x.DiemTB).ToList()
+                : ds.OrderByDescending(x => x.DiemTB).ToList();
+
+            sapXepTang = !sapXepTang;
+
+            TaiLaiBang();
+        }
+
+        
+        private void btnLuuFile_Click(object sender, EventArgs e)
+        {
+            if (ds.Count == 0)
+            {
+                MessageBox.Show("Danh sách trống!");
+                return;
+            }
+
+            using (SaveFileDialog sfd = new SaveFileDialog()
+            { Filter = "Excel File (*.xlsx)|*.xlsx" })
+            {
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    var wb = new XLWorkbook();
+                    var ws = wb.Worksheets.Add("SinhVien");
+
+                    ws.Cell(1, 1).Value = "STT";
+                    ws.Cell(1, 2).Value = "Mã SV";
+                    ws.Cell(1, 3).Value = "Tên SV";
+                    ws.Cell(1, 4).Value = "Lớp";
+                    ws.Cell(1, 5).Value = "Điểm TK";
+                    ws.Cell(1, 6).Value = "Điểm Thi";
+                    ws.Cell(1, 7).Value = "Điểm TB";
+                    ws.Cell(1, 8).Value = "Học lực";
+                    ws.Cell(1, 9).Value = "Hạnh kiểm";
+
+                    int row = 2;
+
+                    foreach (var sv in ds.OrderBy(x => x.STT))
+                    {
+                        ws.Cell(row, 1).Value = sv.STT;
+                        ws.Cell(row, 2).Value = sv.MaSV;
+                        ws.Cell(row, 3).Value = sv.TenSV;
+                        ws.Cell(row, 4).Value = sv.Lop;
+                        ws.Cell(row, 5).Value = sv.DiemTK;
+                        ws.Cell(row, 6).Value = sv.DiemThi;
+                        ws.Cell(row, 7).Value = sv.DiemTB;
+                        ws.Cell(row, 8).Value = sv.HocLuc;
+                        ws.Cell(row, 9).Value = sv.HanhKiem;
+                        row++;
+                    }
+
+                    wb.SaveAs(sfd.FileName);
+                    MessageBox.Show("Lưu thành công!");
+                }
+            }
+        }
+
+        
+        private void btnMoFile_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog()
+            { Filter = "Excel (*.xlsx)|*.xlsx" })
+            {
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    var wb = new XLWorkbook(ofd.FileName);
+                    var ws = wb.Worksheet(1);
+
+                    ds.Clear();
+
+                    foreach (var row in ws.RowsUsed().Skip(1))
+                    {
+                        ds.Add(new Student
+                        {
+                            STT = (int)row.Cell(1).GetDouble(),
+                            MaSV = row.Cell(2).GetString(),
+                            TenSV = row.Cell(3).GetString(),
+                            Lop = row.Cell(4).GetString(),
+                            DiemTK = row.Cell(5).GetDouble(),
+                            DiemThi = row.Cell(6).GetDouble(),
+                            DiemTB = row.Cell(7).GetDouble(),
+                            HocLuc = row.Cell(8).GetString(),
+                            HanhKiem = row.Cell(9).GetString()
+                        });
+                    }
+
+                    TaiLaiBang();
+                    txtSTT.Text = (ds.Count + 1).ToString();
+                }
+            }
+        }
+
+       
+        private void quảnLýThôngTinToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new fQuanLyThongTin().Show();
+            this.Hide();
+        }
+
+        private void quảnLýKhoaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new fQuanLyKhoa().Show();
+            this.Hide();
+        }
+
+        private void quảnLýNgànhToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new fQuanLyNganh().Show();
+            this.Hide();
+        }
+
+        private void quảnLýKhóaHọcToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new fQuanLyKhoaHoc().Show();
+            this.Hide();
+        }
+
+        private void quảnLýLớpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new fQuanLyLop().Show();
+            this.Hide();
+        }
+
+        private void quảnLýToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            new fQuanLyMonHoc().Show();
+            this.Hide();
+        }
+
+        private void pnlNhapLieu_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+       
+    }
+}
