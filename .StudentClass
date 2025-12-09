@@ -1,0 +1,25 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Student_Manage___Project
+{
+
+    //=============================
+    // CLASS STUDENT
+    //=============================
+    public class Student
+    {
+        public int STT { get; set; }
+        public string MaSV { get; set; }
+        public string TenSV { get; set; }
+        public string Lop { get; set; }
+        public double DiemTK { get; set; }
+        public double DiemThi { get; set; }
+        public double DiemTB { get; set; }
+        public string HocLuc { get; set; }
+        public string HanhKiem { get; set; }
+    }
+}
