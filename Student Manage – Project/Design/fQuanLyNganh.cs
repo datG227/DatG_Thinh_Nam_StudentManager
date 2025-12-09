@@ -1,0 +1,308 @@
+﻿using Student_Manage___Project.GUI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace Student_Manage___Project.Design
+{
+    public partial class fQuanLyNganh : Form
+    {
+        // =================== DỮ LIỆU MẪU NGÀNH THEO KHOA ===================
+        private readonly Dictionary<string, List<(string MaNganh, string TenNganh)>> DSNganh =
+            new Dictionary<string, List<(string, string)>>()
+            {
+                { "CNTT", new List<(string,string)> {
+                    ("CNTT","Công nghệ thông tin"),
+                    ("KTPM","Kỹ thuật phần mềm"),
+                    ("ATTT","An toàn thông tin"),
+                    ("KHMT","Khoa học máy tính"),
+                    ("HTTT","Hệ thống thông tin")
+                } },
+                { "KT", new List<(string,string)> {
+                    ("QTKD","Quản trị kinh doanh"),
+                    ("MKT","Marketing"),
+                    ("TCNH","Tài chính - Ngân hàng"),
+                    ("KTKT","Kế toán - Kiểm toán")
+                } },
+                { "SP", new List<(string,string)> {
+                    ("SPTOAN","Sư phạm Toán"),
+                    ("SPVAN","Sư phạm Văn"),
+                    ("SPANH","Sư phạm Anh")
+                } }
+            };
+
+        // =================== DANH SÁCH NGÀNH LƯU TRONG FORM ===================
+        private readonly List<Nganh> dsNganh = new List<Nganh>();
+        private object quảnLýNgànhToolStripMenuItem;
+
+        private class Nganh
+        {
+            public int ID { get; set; }
+            public string MaNganh { get; set; }
+            public string TenNganh { get; set; }
+            public string Khoa { get; set; }
+        }
+
+        // ========================== KHỞI TẠO FORM ==========================
+        public fQuanLyNganh()
+        {
+            InitializeComponent();
+
+            dgvQuanLyNganh.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvQuanLyNganh.MultiSelect = false;
+
+            this.Load += fQuanLyNganh_Load;
+
+            cboKhoa.SelectedIndexChanged += cboKhoa_SelectedIndexChanged;
+            cboNganh.SelectedIndexChanged += cboNganh_SelectedIndexChanged;
+
+            dgvQuanLyNganh.CellClick += dgvQuanLyNganh_CellClick;
+
+            btnThem.Click += BtnThem_Click;
+            btnSua.Click += BtnSua_Click;
+            btnXoa.Click += BtnXoa_Click;
+            btnLamMoi.Click += BtnLamMoi_Click;
+
+            // ==================== MENU CHUYỂN FORM ====================
+            quảnLýThôngTinToolStripMenuItem.Click += (s, e) =>
+            {
+                Hide();
+                new fSinhVien().Show();
+            };
+
+            quảnLýKhoaToolStripMenuItem.Click += (s, e) =>
+            {
+                Hide();
+                new fQuanLyKhoa().Show();
+            };
+
+
+
+            quảnLýLớpToolStripMenuItem.Click += (s, e) =>
+            {
+                Hide();
+                new fQuanLyLop().Show();
+            };
+
+            quảnLýMônHọcToolStripMenuItem.Click += (s, e) =>
+            {
+                Hide();
+                new fQuanLyMonHoc().Show();
+            };
+
+            quảnLýKhóaHọcToolStripMenuItem.Click += (s, e) =>
+            {
+                Hide();
+                new fQuanLyKhoaHoc().Show();
+            };
+
+            quảnLýĐiểmToolStripMenuItem.Click += (s, e) =>
+            {
+                Hide();
+                new fSinhVien().Show();
+            };
+
+            
+        }
+       
+
+        private void pnlQuanLyNganh_Paint(object sender, PaintEventArgs e)
+        {
+           
+        }
+
+        private void pnlQuanLyKhoa_Paint(object sender, PaintEventArgs e)
+        {
+        }
+
+        private void pnlQuanLyKhoaHoc_Paint(object sender, PaintEventArgs e)
+        {
+        }
+
+        private void pnlQuanLyThongTin_Paint(object sender, PaintEventArgs e)
+        {
+        }
+
+        private void pnlNhapLieu_Paint(object sender, PaintEventArgs e)
+        {
+        }
+
+        private void pnlQuanLyMonHoc_Paint(object sender, PaintEventArgs e)
+        {
+        }
+
+        private void pnlQuanLyLop_Paint(object sender, PaintEventArgs e)
+        {
+        }
+
+       
+        private void fQuanLyNganh_Load(object sender, EventArgs e)
+        {
+            cboKhoa.Items.Clear();
+            cboKhoa.Items.Add("CNTT");
+            cboKhoa.Items.Add("KT");
+            cboKhoa.Items.Add("SP");
+
+            cboNganh.Items.Clear();
+            cboNganh.Text = "";
+
+            RefreshGrid();
+        }
+
+        private void cboKhoa_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            txtMaNganh.Clear();
+            txtTenNganh.Clear();
+
+            cboNganh.Items.Clear();
+            cboNganh.Text = "";
+
+            string khoa = cboKhoa.Text;
+            if (!DSNganh.ContainsKey(khoa)) return;
+
+            foreach (var ng in DSNganh[khoa])
+            {
+                cboNganh.Items.Add($"{ng.MaNganh} - {ng.TenNganh}");
+            }
+        }
+
+       
+        private void cboNganh_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (!cboNganh.Text.Contains("-")) return;
+
+            var p = cboNganh.Text.Split('-');
+            txtMaNganh.Text = p[0].Trim();
+            txtTenNganh.Text = p[1].Trim();
+        }
+
+       
+        private void RefreshGrid()
+        {
+            dgvQuanLyNganh.Rows.Clear();
+
+            foreach (var n in dsNganh)
+            {
+                dgvQuanLyNganh.Rows.Add(n.ID, n.MaNganh, n.TenNganh, n.Khoa);
+            }
+
+            dgvQuanLyNganh.ClearSelection();
+        }
+
+        
+        private void BtnThem_Click(object sender, EventArgs e)
+        {
+            if (!int.TryParse(txtID.Text, out int id))
+            {
+                MessageBox.Show("ID phải là số!");
+                return;
+            }
+
+            if (dsNganh.Any(x => x.ID == id))
+            {
+                MessageBox.Show("ID đã tồn tại!");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtMaNganh.Text) ||
+                string.IsNullOrWhiteSpace(txtTenNganh.Text) ||
+                string.IsNullOrWhiteSpace(cboKhoa.Text))
+            {
+                return;
+            }
+
+            dsNganh.Add(new Nganh
+            {
+                ID = id,
+                MaNganh = txtMaNganh.Text,
+                TenNganh = txtTenNganh.Text,
+                Khoa = cboKhoa.Text
+            });
+
+            RefreshGrid();
+        }
+
+
+        private void BtnSua_Click(object sender, EventArgs e)
+        {
+            if (!int.TryParse(txtID.Text, out int id)) return;
+
+            var n = dsNganh.FirstOrDefault(x => x.ID == id);
+            if (n == null)
+            {
+                MessageBox.Show("Không tìm thấy ngành!");
+                return;
+            }
+
+            n.MaNganh = txtMaNganh.Text;
+            n.TenNganh = txtTenNganh.Text;
+            n.Khoa = cboKhoa.Text;
+
+            RefreshGrid();
+
+            MessageBox.Show("Sửa thành công!");
+        }
+
+       
+        private void BtnXoa_Click(object sender, EventArgs e)
+        {
+            if (!int.TryParse(txtID.Text, out int id)) return;
+
+            if (MessageBox.Show("Xóa ngành này?", "Xác nhận",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
+            dsNganh.RemoveAll(x => x.ID == id);
+            RefreshGrid();
+            BtnLamMoi_Click(null, null);
+
+            MessageBox.Show("Đã xóa!");
+        }
+
+        
+        private void BtnLamMoi_Click(object sender, EventArgs e)
+        {
+            txtID.Clear();
+            txtMaNganh.Clear();
+            txtTenNganh.Clear();
+
+            cboKhoa.SelectedIndex = -1;
+            cboKhoa.Text = "";
+
+            cboNganh.Items.Clear();
+            cboNganh.SelectedIndex = -1;
+            cboNganh.Text = "";
+
+            dgvQuanLyNganh.ClearSelection();
+        }
+
+        
+        private void dgvQuanLyNganh_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            var row = dgvQuanLyNganh.Rows[e.RowIndex];
+
+            txtID.Text = row.Cells[0].Value?.ToString();
+            txtMaNganh.Text = row.Cells[1].Value?.ToString();
+            txtTenNganh.Text = row.Cells[2].Value?.ToString();
+            cboKhoa.Text = row.Cells[3].Value?.ToString();
+
+         
+            cboNganh.Items.Clear();
+            string khoa = cboKhoa.Text;
+            if (DSNganh.ContainsKey(khoa))
+            {
+                foreach (var ng in DSNganh[khoa])
+                {
+                    cboNganh.Items.Add($"{ng.MaNganh} - {ng.TenNganh}");
+                }
+            }
+
+            string want = $"{txtMaNganh.Text} - {txtTenNganh.Text}";
+            if (cboNganh.Items.Contains(want))
+                cboNganh.Text = want;
+        }
+    }
+}

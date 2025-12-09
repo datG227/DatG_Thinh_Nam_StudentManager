@@ -1,0 +1,43 @@
+﻿using Student_Manage___Project.GUI;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Student_Manage___Project
+{
+    public partial class fDangNhap : Form
+    {
+        public fDangNhap()
+        {
+            InitializeComponent();
+        }
+
+        private void btnDangNhap_Click(object sender, EventArgs e)
+        {
+            string taiKhoan = txtTaiKhoan.Text;
+            string matKhau = txtMatKhau.Text;
+
+            if (taiKhoan == "admin" && matKhau == "123")
+            {
+                fQuanLyThongTin frm = new fQuanLyThongTin();
+                frm.Show();
+                this.Hide();
+            }
+            else
+            {
+                MessageBox.Show("Sai tài khoản hoặc mật khẩu");
+            }
+        }
+
+        private void fDangNhap_Load(object sender, EventArgs e)
+        {
+
+        }
+    }
+}

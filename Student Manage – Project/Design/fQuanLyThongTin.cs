@@ -1,0 +1,490 @@
+﻿using ClosedXML.Excel;
+using Student_Manage___Project.Design;
+using Student_Manage___Project.GUI;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace Student_Manage___Project
+{
+    public partial class fQuanLyThongTin : Form
+    {
+        class SinhVien
+        {
+            public int ID { get; set; }
+            public string MaSV { get; set; }
+            public string TenSV { get; set; }
+            public string GioiTinh { get; set; }
+            public DateTime NgaySinh { get; set; }
+            public string QueQuan { get; set; }
+            public string KhoaHoc { get; set; }
+            public string Khoa { get; set; }
+            public string Nganh { get; set; }
+            public string Lop { get; set; }
+        }
+
+        private readonly List<SinhVien> dsSV = new List<SinhVien>();
+
+        private readonly List<string> khoaList = new List<string> { "CNTT", "QTKD", "DLKS", "NNA" };
+        private readonly Dictionary<string, List<string>> nganhTheoKhoa = new Dictionary<string, List<string>>();
+        private readonly List<string> khoaHocList = new List<string> { "K27", "K28", "K29", "K30", "K31" };
+        private readonly Dictionary<string, List<string>> lopTheoNganh = new Dictionary<string, List<string>>();
+
+        public fQuanLyThongTin()
+        {
+            InitializeComponent();
+
+            txtID.Text = "1";
+            txtID.ReadOnly = true;   
+            txtID.BackColor = System.Drawing.Color.LightGray; 
+            txtID.ForeColor = System.Drawing.Color.Black; 
+
+            InitializeDataSource();
+            LoadInitialComboBoxes();
+
+            btnThem.Click += BtnThem_Click;
+            btnSua.Click += BtnSua_Click;
+            btnXoa.Click += BtnXoa_Click;
+            btnLamMoi.Click += BtnLamMoi_Click;
+
+            btnLuuFile.Click += BtnLuuFile_Click;
+            btnMoFile.Click += BtnMoFile_Click;
+
+            dgvQuanLyThongTin.CellClick += DgvQuanLyThongTin_CellClick;
+
+            cboKhoa.SelectedIndexChanged += CboKhoa_SelectedIndexChanged;
+            cboNganh.SelectedIndexChanged += CboNganh_SelectedIndexChanged;
+            cboKhoaHoc.SelectedIndexChanged += CboKhoaHoc_SelectedIndexChanged;
+
+            RefreshGrid();
+        }
+
+        private void InitializeDataSource()
+        {
+            nganhTheoKhoa["CNTT"] = new List<string> { "Công nghệ phần mềm", "An toàn thông tin", "Khoa học dữ liệu" };
+            nganhTheoKhoa["QTKD"] = new List<string> { "Quản trị kinh doanh", "Marketing" };
+            nganhTheoKhoa["DLKS"] = new List<string> { "Du lịch - Khách sạn" };
+            nganhTheoKhoa["NNA"] = new List<string> { "Ngôn ngữ Anh" };
+
+            lopTheoNganh["Công nghệ phần mềm"] = new List<string> { "CMU-SE100", "SE1101", "SE1102", "SE1201", "SE1202", "SE1301" };
+            lopTheoNganh["An toàn thông tin"] = new List<string> { "SEC1501", "SEC1502", "SEC1601", "SEC1602" };
+            lopTheoNganh["Khoa học dữ liệu"] = new List<string> { "DS100", "DS101", "DS110", "DS120" };
+            lopTheoNganh["Quản trị kinh doanh"] = new List<string> { "QTKD101", "QTKD102", "QTKD201", "QTKD202" };
+            lopTheoNganh["Marketing"] = new List<string> { "MKT100", "MKT101", "MKT200", "MKT201" };
+            lopTheoNganh["Du lịch - Khách sạn"] = new List<string> { "DL100", "DL101", "DL200", "DL201" };
+            lopTheoNganh["Ngôn ngữ Anh"] = new List<string> { "EN100", "EN101", "EN200", "EN201" };
+        }
+
+        private void LoadInitialComboBoxes()
+        {
+            cboKhoa.Items.Clear();
+            foreach (var k in khoaList) cboKhoa.Items.Add(k);
+
+            cboKhoaHoc.Items.Clear();
+            foreach (var kh in khoaHocList) cboKhoaHoc.Items.Add(kh);
+
+            cboKhoa.SelectedIndex = -1;
+
+            cboNganh.Items.Clear();
+            cboNganh.Text = "";
+
+            cboKhoaHoc.SelectedIndex = -1;
+
+            cboLop.Items.Clear();
+            cboLop.Text = "";
+        }
+
+        private void CboKhoa_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            cboNganh.Items.Clear();
+            cboNganh.Text = "";
+            cboLop.Items.Clear();
+            cboLop.Text = "";
+
+            if (cboKhoa.SelectedItem == null) return;
+
+            string khoa = cboKhoa.SelectedItem.ToString();
+            foreach (var ng in nganhTheoKhoa[khoa])
+                cboNganh.Items.Add(ng);
+        }
+
+        private void CboNganh_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadLop();
+        }
+
+        private void CboKhoaHoc_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadLop();
+        }
+
+        private void LoadLop()
+        {
+            cboLop.Items.Clear();
+            cboLop.Text = "";
+
+            if (cboNganh.SelectedItem == null) return;
+
+            string nganh = cboNganh.SelectedItem.ToString();
+            foreach (var lop in lopTheoNganh[nganh])
+                cboLop.Items.Add(lop);
+        }
+
+        private bool ValidateInputs()
+        {
+            
+            if (!int.TryParse(txtID.Text.Trim(), out _))
+            {
+                MessageBox.Show("ID phải là số!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+      
+            if (!int.TryParse(txtMaSV.Text.Trim(), out _))
+            {
+                MessageBox.Show("Mã sinh viên phải là số!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtTenSV.Text) ||
+                string.IsNullOrWhiteSpace(txtQueQuan.Text) ||
+                (!rdoNam.Checked && !rdoNu.Checked) ||
+                cboKhoa.SelectedItem == null ||
+                cboKhoaHoc.SelectedItem == null ||
+                cboNganh.SelectedItem == null ||
+                cboLop.SelectedItem == null)
+            {
+                MessageBox.Show("Dữ liệu không hợp lệ!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void BtnThem_Click(object sender, EventArgs e)
+        {
+           
+            int newID = dsSV.Count + 1;
+            txtID.Text = newID.ToString();
+
+            if (!ValidateInputs()) return;
+
+            dsSV.Add(new SinhVien
+            {
+                ID = newID,
+                MaSV = txtMaSV.Text,
+                TenSV = txtTenSV.Text,
+                GioiTinh = rdoNam.Checked ? "Nam" : "Nữ",
+                NgaySinh = dtNgaySinh.Value,
+                QueQuan = txtQueQuan.Text,
+                KhoaHoc = cboKhoaHoc.SelectedItem.ToString(),
+                Khoa = cboKhoa.SelectedItem.ToString(),
+                Nganh = cboNganh.SelectedItem.ToString(),
+                Lop = cboLop.SelectedItem.ToString()
+            });
+
+            RefreshGrid();
+        }
+
+        private void BtnSua_Click(object sender, EventArgs e)
+        {
+            if (dgvQuanLyThongTin.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Bạn chưa chọn dòng để sửa!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!ValidateInputs()) return;
+
+            int originalID = Convert.ToInt32(
+                dgvQuanLyThongTin.SelectedRows[0].Cells["ColiD"].Value
+            );
+
+            var sv = dsSV.First(x => x.ID == originalID);
+
+            sv.ID = originalID; 
+            sv.MaSV = txtMaSV.Text;
+            sv.TenSV = txtTenSV.Text;
+            sv.GioiTinh = rdoNam.Checked ? "Nam" : "Nữ";
+            sv.NgaySinh = dtNgaySinh.Value;
+            sv.QueQuan = txtQueQuan.Text;
+            sv.KhoaHoc = cboKhoaHoc.SelectedItem.ToString();
+            sv.Khoa = cboKhoa.SelectedItem.ToString();
+            sv.Nganh = cboNganh.SelectedItem.ToString();
+            sv.Lop = cboLop.SelectedItem.ToString();
+
+            RefreshGrid();
+
+            MessageBox.Show("Sửa sinh viên thành công!", "Thông báo",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void BtnXoa_Click(object sender, EventArgs e)
+        {
+            if (dgvQuanLyThongTin.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Bạn chưa chọn dòng để xóa!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                "Bạn có chắc chắn muốn xóa sinh viên này không?",
+                "Xác nhận xóa",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirm == DialogResult.No) return;
+
+            int id = Convert.ToInt32(
+                dgvQuanLyThongTin.SelectedRows[0].Cells["ColiD"].Value
+            );
+
+            dsSV.RemoveAll(x => x.ID == id);
+            RefreshGrid();
+        }
+
+        private void BtnLamMoi_Click(object sender, EventArgs e)
+        {
+            txtID.Clear();
+            txtMaSV.Clear();
+            txtTenSV.Clear();
+            txtQueQuan.Clear();
+            txtTimKiem.Clear();
+
+            rdoNam.Checked = false;
+            rdoNu.Checked = false;
+
+            cboKhoa.SelectedIndex = -1;
+            cboKhoaHoc.SelectedIndex = -1;
+
+            cboNganh.Items.Clear();
+            cboNganh.Text = "";
+
+            cboLop.Items.Clear();
+            cboLop.Text = "";
+
+            dtNgaySinh.Value = DateTime.Today;
+
+            dgvQuanLyThongTin.ClearSelection();
+        }
+
+        private void DgvQuanLyThongTin_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            var r = dgvQuanLyThongTin.Rows[e.RowIndex];
+
+            txtID.Text = r.Cells["ColiD"].Value?.ToString() ?? "";
+            txtMaSV.Text = r.Cells["ColMaSV"].Value?.ToString() ?? "";
+            txtTenSV.Text = r.Cells["ColTenSV"].Value?.ToString() ?? "";
+            txtQueQuan.Text = r.Cells["ColQueQuan"].Value?.ToString() ?? "";
+
+            dtNgaySinh.Value = DateTime.Parse(r.Cells["ColNgaySinh"].Value.ToString());
+
+            rdoNam.Checked = r.Cells["ColGioiTinh"].Value.ToString() == "Nam";
+            rdoNu.Checked = r.Cells["ColGioiTinh"].Value.ToString() == "Nữ";
+
+            cboKhoa.SelectedItem = r.Cells["ColKhoa"].Value;
+            cboKhoaHoc.SelectedItem = r.Cells["ColKhoaHoc"].Value;
+
+            cboNganh.Items.Clear();
+            cboNganh.Items.Add(r.Cells["ColNganh"].Value);
+            cboNganh.SelectedItem = r.Cells["ColNganh"].Value;
+
+            cboLop.Items.Clear();
+            cboLop.Items.Add(r.Cells["ColLop"].Value);
+            cboLop.SelectedItem = r.Cells["ColLop"].Value;
+        }
+
+        private void BtnTimKiem_Click(object sender, EventArgs e)
+        {
+            string key = txtTimKiem.Text.Trim().ToLower();
+
+            foreach (DataGridViewRow row in dgvQuanLyThongTin.Rows)
+            {
+                if (row.IsNewRow) continue;
+
+                bool match =
+                    row.Cells["ColMaSV"].Value.ToString().ToLower().Contains(key) ||
+                    row.Cells["ColTenSV"].Value.ToString().ToLower().Contains(key);
+
+                row.Visible = match;
+            }
+        }
+
+        private void RefreshGrid()
+        {
+            dgvQuanLyThongTin.Rows.Clear();
+
+            foreach (var sv in dsSV)
+            {
+                dgvQuanLyThongTin.Rows.Add(
+                    sv.ID,
+                    sv.MaSV,
+                    sv.TenSV,
+                    sv.NgaySinh.ToString("dd/MM/yyyy"),
+                    sv.GioiTinh,
+                    sv.QueQuan,
+                    sv.KhoaHoc,
+                    sv.Khoa,
+                    sv.Nganh,
+                    sv.Lop
+                );
+            }
+
+            dgvQuanLyThongTin.ClearSelection();
+        }
+
+        private void BtnLuuFile_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog sfd = new SaveFileDialog()
+            {
+                Filter = "Excel File|*.xlsx",
+                Title = "Lưu danh sách sinh viên"
+            })
+            {
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    var workbook = new XLWorkbook();
+                    var ws = workbook.Worksheets.Add("SinhVien");
+
+                    ws.Cell(1, 1).Value = "ID";
+                    ws.Cell(1, 2).Value = "MaSV";
+                    ws.Cell(1, 3).Value = "TenSV";
+                    ws.Cell(1, 4).Value = "NgaySinh";
+                    ws.Cell(1, 5).Value = "GioiTinh";
+                    ws.Cell(1, 6).Value = "QueQuan";
+                    ws.Cell(1, 7).Value = "KhoaHoc";
+                    ws.Cell(1, 8).Value = "Khoa";
+                    ws.Cell(1, 9).Value = "Nganh";
+                    ws.Cell(1, 10).Value = "Lop";
+
+                    int row = 2;
+                    foreach (var sv in dsSV)
+                    {
+                        ws.Cell(row, 1).Value = sv.ID;
+                        ws.Cell(row, 2).Value = sv.MaSV;
+                        ws.Cell(row, 3).Value = sv.TenSV;
+                        ws.Cell(row, 4).Value = sv.NgaySinh;
+                        ws.Cell(row, 5).Value = sv.GioiTinh;
+                        ws.Cell(row, 6).Value = sv.QueQuan;
+                        ws.Cell(row, 7).Value = sv.KhoaHoc;
+                        ws.Cell(row, 8).Value = sv.Khoa;
+                        ws.Cell(row, 9).Value = sv.Nganh;
+                        ws.Cell(row, 10).Value = sv.Lop;
+                        row++;
+                    }
+
+                    workbook.SaveAs(sfd.FileName);
+                }
+            }
+        }
+
+      
+
+        private void quảnLýĐiểmThiSinhViênToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fSinhVien f = new fSinhVien();
+            f.Show();
+            this.Hide();
+        }
+
+        private void quảnLýKhoaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fQuanLyKhoa f = new fQuanLyKhoa();
+            f.Show();
+            this.Hide();
+        }
+
+        private void quảnLýNgànhToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fQuanLyNganh f = new fQuanLyNganh();
+            f.Show();
+            this.Hide();
+        }
+
+        private void quảnLýKhóaHọcToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fQuanLyKhoaHoc f = new fQuanLyKhoaHoc();
+            f.Show();
+            this.Hide();
+        }
+
+        private void quảnLýLớpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fQuanLyLop f = new fQuanLyLop();
+            f.Show();
+            this.Hide();
+        }
+
+        private void quảnLýMônHọcToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fQuanLyMonHoc f = new fQuanLyMonHoc();
+            f.Show();
+            this.Hide();
+        }
+
+        private void BtnMoFile_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog()
+            {
+                Filter = "Excel File|*.xlsx",
+                Title = "Mở file sinh viên"
+            })
+            {
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    var workbook = new XLWorkbook(ofd.FileName);
+                    var ws = workbook.Worksheet(1);
+
+                    dsSV.Clear();
+
+                    int row = 2;
+                    while (!ws.Cell(row, 1).IsEmpty())
+                    {
+                        dsSV.Add(new SinhVien
+                        {
+                            ID = ws.Cell(row, 1).GetValue<int>(),
+                            MaSV = ws.Cell(row, 2).GetValue<string>(),
+                            TenSV = ws.Cell(row, 3).GetValue<string>(),
+                            NgaySinh = ws.Cell(row, 4).GetDateTime(),
+                            GioiTinh = ws.Cell(row, 5).GetValue<string>(),
+                            QueQuan = ws.Cell(row, 6).GetValue<string>(),
+                            KhoaHoc = ws.Cell(row, 7).GetValue<string>(),
+                            Khoa = ws.Cell(row, 8).GetValue<string>(),
+                            Nganh = ws.Cell(row, 9).GetValue<string>(),
+                            Lop = ws.Cell(row, 10).GetValue<string>()
+                        });
+
+                        row++;
+                    }
+
+                    RefreshGrid();
+                }
+            }
+        }
+
+        private void pnlQuanLyThongTin_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void đăngXuấtToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+
+            fDangNhap f = new fDangNhap();
+
+            f.FormClosed += (s, args) => this.Close();
+
+            f.Show();
+        }
+
+
+    }
+}
